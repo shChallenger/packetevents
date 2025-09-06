@@ -25,13 +25,16 @@ import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
 public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrapper<WrapperPlayServerEntityRelativeMoveAndRotation> {
     private static final float ROTATION_FACTOR = 256.0F / 360.0F;
-    private static final double MODERN_DELTA_DIVISOR = 4096.0;
-    private static final double LEGACY_DELTA_DIVISOR = 32.0;
+    private static final double MODERN_DELTA_DIVISOR = 4096.0D;
+    private static final double LEGACY_DELTA_DIVISOR = 32.0D;
 
     private int entityID;
     private double deltaX;
     private double deltaY;
     private double deltaZ;
+    private int iDeltaX;
+    private int iDeltaY;
+    private int iDeltaZ;
     private float yaw;
     private float pitch;
     private boolean onGround;
@@ -56,13 +59,19 @@ public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrappe
     public void read() {
         entityID = readVarInt();
         if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9)) {
-            deltaX = readShort() / MODERN_DELTA_DIVISOR;
-            deltaY = readShort() / MODERN_DELTA_DIVISOR;
-            deltaZ = readShort() / MODERN_DELTA_DIVISOR;
+            iDeltaX = readShort();
+            deltaX = iDeltaX / MODERN_DELTA_DIVISOR;
+            iDeltaY = readShort();
+            deltaY = iDeltaY / MODERN_DELTA_DIVISOR;
+            iDeltaZ = readShort();
+            deltaZ = iDeltaZ / MODERN_DELTA_DIVISOR;
         } else {
-            deltaX = readByte() / LEGACY_DELTA_DIVISOR;
-            deltaY = readByte() / LEGACY_DELTA_DIVISOR;
-            deltaZ = readByte() / LEGACY_DELTA_DIVISOR;
+            iDeltaX = readByte();
+            deltaX = iDeltaX / LEGACY_DELTA_DIVISOR;
+            iDeltaY = readByte();
+            deltaY = iDeltaY / LEGACY_DELTA_DIVISOR;
+            iDeltaZ = readByte();
+            deltaZ = iDeltaZ / LEGACY_DELTA_DIVISOR;
         }
         yaw = readByte() / ROTATION_FACTOR;
         pitch = readByte() / ROTATION_FACTOR;
@@ -73,13 +82,13 @@ public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrappe
     public void write() {
         writeVarInt(entityID);
         if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9)) {
-            writeShort((short) (deltaX * MODERN_DELTA_DIVISOR));
-            writeShort((short) (deltaY * MODERN_DELTA_DIVISOR));
-            writeShort((short) (deltaZ * MODERN_DELTA_DIVISOR));
+            writeShort(iDeltaX);
+            writeShort(iDeltaY);
+            writeShort(iDeltaZ);
         } else {
-            writeByte((byte) (deltaX * LEGACY_DELTA_DIVISOR));
-            writeByte((byte) (deltaY * LEGACY_DELTA_DIVISOR));
-            writeByte((byte) (deltaZ * LEGACY_DELTA_DIVISOR));
+            writeByte(iDeltaX);
+            writeByte(iDeltaY);
+            writeByte(iDeltaZ);
         }
         writeByte((int) (yaw * ROTATION_FACTOR));
         writeByte((int) (pitch * ROTATION_FACTOR));
@@ -92,6 +101,9 @@ public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrappe
         deltaX = wrapper.deltaX;
         deltaY = wrapper.deltaY;
         deltaZ = wrapper.deltaZ;
+        iDeltaX = wrapper.iDeltaX;
+        iDeltaY = wrapper.iDeltaY;
+        iDeltaZ = wrapper.iDeltaZ;
         yaw = wrapper.yaw;
         pitch = wrapper.pitch;
         onGround = wrapper.onGround;
@@ -111,6 +123,8 @@ public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrappe
 
     public void setDeltaX(double deltaX) {
         this.deltaX = deltaX;
+        this.iDeltaX = serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9) ?
+                (int) (deltaX * MODERN_DELTA_DIVISOR) : (int) (deltaX * LEGACY_DELTA_DIVISOR);
     }
 
     public double getDeltaY() {
@@ -119,6 +133,8 @@ public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrappe
 
     public void setDeltaY(double deltaY) {
         this.deltaY = deltaY;
+        this.iDeltaY = serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9) ?
+                (int) (deltaY * MODERN_DELTA_DIVISOR) : (int) (deltaY * LEGACY_DELTA_DIVISOR);
     }
 
     public double getDeltaZ() {
@@ -127,6 +143,20 @@ public class WrapperPlayServerEntityRelativeMoveAndRotation extends PacketWrappe
 
     public void setDeltaZ(double deltaZ) {
         this.deltaZ = deltaZ;
+        this.iDeltaZ = serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9) ?
+                (int) (deltaZ * MODERN_DELTA_DIVISOR) : (int) (deltaZ * LEGACY_DELTA_DIVISOR);
+    }
+
+    public int getIDeltaX() {
+        return iDeltaX;
+    }
+
+    public int getIDeltaY() {
+        return iDeltaY;
+    }
+
+    public int getIDeltaZ() {
+        return iDeltaZ;
     }
 
     public float getYaw() {
