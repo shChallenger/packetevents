@@ -245,7 +245,6 @@ public abstract class ProtocolPacketEvent extends PacketEvent implements PlayerE
     public Object getFullBufferClone() {
         byte[] data = ByteBufHelper.copyBytes(getByteBuf());
         Object buffer = UnpooledByteBufAllocationHelper.buffer();
-        ByteBufHelper.writeVarInt(buffer, getPacketId());
         ByteBufHelper.writeBytes(buffer, data);
         return buffer;
     }
