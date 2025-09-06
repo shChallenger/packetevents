@@ -209,7 +209,7 @@ public final class PacketType {
             ClientVersion.V_1_7_2,
             ClientVersion.V_1_8,
             ClientVersion.V_1_9,
-            ClientVersion.V_1_10,
+            ClientVersion.V_1_9_3,
             ClientVersion.V_1_12,
             ClientVersion.V_1_12_1,
             ClientVersion.V_1_13,
