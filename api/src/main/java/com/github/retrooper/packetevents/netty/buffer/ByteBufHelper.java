@@ -243,6 +243,10 @@ public class ByteBufHelper {
         return PacketEvents.getAPI().getNettyManager().getByteBufOperator().allocateNewBuffer(buffer);
     }
 
+    public static Object wrappedBuffer(Object... buffers) {
+        return PacketEvents.getAPI().getNettyManager().getByteBufAllocationOperator().wrappedBuffer(buffers);
+    }
+
     public static int getByteSize(int value) {
         for (int i = 1; i < 5; ++i) {
             if ((value & -1 << i * 7) == 0) {

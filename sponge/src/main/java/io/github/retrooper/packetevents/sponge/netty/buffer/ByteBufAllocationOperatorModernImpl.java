@@ -19,12 +19,18 @@
 package io.github.retrooper.packetevents.sponge.netty.buffer;
 
 import com.github.retrooper.packetevents.netty.buffer.ByteBufAllocationOperator;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 public class ByteBufAllocationOperatorModernImpl implements ByteBufAllocationOperator {
     @Override
     public Object wrappedBuffer(byte[] bytes) {
         return Unpooled.wrappedBuffer(bytes);
+    }
+
+    @Override
+    public Object wrappedBuffer(Object... buffers) {
+        return Unpooled.wrappedBuffer((ByteBuf[]) buffers);
     }
 
     @Override
