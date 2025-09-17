@@ -30,7 +30,11 @@ public class ByteBufAllocationOperatorImpl implements ByteBufAllocationOperator 
 
     @Override
     public Object wrappedBuffer(Object... buffers) {
-        return Unpooled.wrappedBuffer((ByteBuf[]) buffers);
+        ByteBuf[] byteBufs = new ByteBuf[buffers.length];
+        for (int i = 0; i < buffers.length; i++) {
+            byteBufs[i] = (ByteBuf) buffers[i];
+        }
+        return Unpooled.wrappedBuffer(byteBufs);
     }
 
     @Override
