@@ -31,9 +31,7 @@ public class ByteBufAllocationOperatorModernImpl implements ByteBufAllocationOpe
     @Override
     public Object wrappedBuffer(Object... buffers) {
         ByteBuf[] byteBufs = new ByteBuf[buffers.length];
-        for (int i = 0; i < buffers.length; i++) {
-            byteBufs[i] = (ByteBuf) buffers[i];
-        }
+        System.arraycopy(buffers, 0, byteBufs, 0, buffers.length);
         return Unpooled.wrappedBuffer(byteBufs);
     }
 
