@@ -21,9 +21,6 @@ package com.github.retrooper.packetevents.wrapper.play.server;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.netty.buffer.ByteBufHelper;
-import com.github.retrooper.packetevents.netty.buffer.UnpooledByteBufAllocationHelper;
-import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
-import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.ChunkBitMask;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
@@ -35,31 +32,18 @@ import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_16.Chunk_v
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_7.Chunk_v1_7;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_8.Chunk_v1_8;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v_1_18.Chunk_v1_18;
-import com.github.retrooper.packetevents.protocol.world.chunk.reader.ChunkReader;
-import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_16;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_18;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_7;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_8;
-import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_9;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
 import java.util.BitSet;
-import java.util.Map;
-import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
-import java.util.zip.Inflater;
 
-public class WrapperPlayServerChunkData extends PacketWrapper<WrapperPlayServerChunkData> {
-    private static ChunkReader_v1_7 chunkReader_v1_7 = new ChunkReader_v1_7();
-    private static ChunkReader_v1_8 chunkReader_v1_8 = new ChunkReader_v1_8();
-    private static ChunkReader_v1_9 chunkReader_v1_9 = new ChunkReader_v1_9();
-    private static ChunkReader_v1_16 chunkReader_v1_16 = new ChunkReader_v1_16();
-    private static ChunkReader_v1_18 chunkReader_v1_18 = new ChunkReader_v1_18();
+public class WrapperPlayServerChunkData extends WrapperPlayServerChunkDataColumn<WrapperPlayServerChunkData> {
 
-    private Column column;
     // 1.18 only (lighting) - for writing data
     private LightData lightData;
-    private boolean ignoreOldData;
 
     public WrapperPlayServerChunkData(PacketSendEvent event) {
         super(event);
@@ -74,142 +58,34 @@ public class WrapperPlayServerChunkData extends PacketWrapper<WrapperPlayServerC
     }
 
     public WrapperPlayServerChunkData(Column column, LightData lightData, boolean ignoreOldData) {
-        super(PacketType.Play.Server.CHUNK_DATA);
-        this.column = column;
+        super(column, ignoreOldData);
         this.lightData = lightData;
-        this.ignoreOldData = ignoreOldData;
     }
 
     @Override
-    public void read() {
-        int chunkX = readInt();
-        int chunkZ = readInt();
-
-        // All chunks are full chunks in 1.17 and above to avoid issues with arbitrary world height
-        boolean checkFullChunk = serverVersion.isOlderThan(ServerVersion.V_1_17);
-        // Don't read a boolean if there isn't a boolean to be read
-        boolean fullChunk = !checkFullChunk || readBoolean();
-
-        if (serverVersion == ServerVersion.V_1_16 || serverVersion == ServerVersion.V_1_16_1) {
-            ignoreOldData = readBoolean();
-        }
-
-        // There is no bitset on 1.18 and above, instead the SingletonPalette is used to represent a chunk with all air
-        BitSet chunkMask = serverVersion.isNewerThanOrEquals(ServerVersion.V_1_18) ? null : ChunkBitMask.readChunkMask(this);
-        boolean hasHeightMaps = serverVersion.isNewerThanOrEquals(ServerVersion.V_1_14);
-        NBTCompound heightmapsNbt = null;
-        Map<HeightmapType, long[]> modernHeightmaps = null;
-        if (hasHeightMaps) {
-            if (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_21_5)) {
-                modernHeightmaps = this.readMap(HeightmapType::read, PacketWrapper::readLongArray);
+    protected void readBiomeData(int expectedReaderIndex, BiomeDataInfo biomeDataInfo) {
+        if (biomeDataInfo.hasBiomeData && this.serverVersion.isOlderThan(ServerVersion.V_1_15)) {
+            if (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_13)) { // Uses ints
+                biomeDataInfo.biomeDataInts = new int[16 * 16];
+                for (int i = 0; i < biomeDataInfo.biomeDataInts.length; i++) {
+                    biomeDataInfo.biomeDataInts[i] = this.readInt();
+                }
+            } else if (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9)) { // Uses bytes
+                biomeDataInfo.biomeDataBytes = new byte[16 * 16];
+                for (int i = 0; i < biomeDataInfo.biomeDataBytes.length; i++) {
+                    biomeDataInfo.biomeDataBytes[i] = this.readByte();
+                }
+            } else if (biomeDataInfo.dataLength == 0) {
+                // if cache-chunk-maps is enabled in paper, paper doesn't send any biome data on chunk unload
+                biomeDataInfo.biomeDataBytes = new byte[0];
             } else {
-                heightmapsNbt = this.readNBT();
+                biomeDataInfo.biomeDataBytes = this.readBytes(16 * 16);
             }
         }
+    }
 
-        // 1.7 sends a secondary bit mask for the block metadata
-        BitSet secondaryChunkMask = null;
-        if (serverVersion.isOlderThanOrEquals(ServerVersion.V_1_7_10)) {
-            secondaryChunkMask = ChunkBitMask.readChunkMask(this);
-        }
-
-        int chunkSize = 16;
-        if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_17)) {
-            chunkSize = user.getTotalWorldHeight() >> 4;
-        }
-
-        // 1.7 logic is the same
-        // 1.8 logic is the same, however, MCProtocolLib checks for remaining bytes... is this needed?
-        // 1.9 logic is the same
-        // 1.12 logic is the same
-        // 1.14 logic for having biome data - is full chunk
-        // 1.16 logic is the same
-        // 1.17 logic ALWAYS sends biome data because it is always a full chunk
-        // 1.18 logic makes it all a palette type system for biome data...
-        boolean hasBiomeData = fullChunk && serverVersion.isOlderThan(ServerVersion.V_1_18);
-
-        boolean bytesInsteadOfInts = serverVersion.isOlderThan(ServerVersion.V_1_13);
-        int[] biomeDataInts = null;
-        byte[] biomeDataBytes = null;
-
-        // 1.7 sends the chunk data as a byte array of size 256 when it is a full chunk
-        // This also applies to 1.8 through 1.12
-        //
-        // 1.13 uses an integer array of size 256 at the end of chunk data
-        // This applies from 1.14
-        //
-        // 1.16.2+ send a var int array instead of an int array
-        if (hasBiomeData && serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16_2)) {
-            biomeDataInts = readVarIntArray();
-        } else if (hasBiomeData && serverVersion.isNewerThanOrEquals(ServerVersion.V_1_15)) {
-            biomeDataInts = new int[1024];
-            for (int i = 0; i < biomeDataInts.length; i++) {
-                biomeDataInts[i] = readInt();
-            }
-        }
-
-        boolean hasBlockLight = (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16) || serverVersion.isOlderThan(ServerVersion.V_1_14))
-                && !serverVersion.isOlderThanOrEquals(ServerVersion.V_1_8_8);
-        boolean hasSkyLight = this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16)
-                || this.serverVersion.isOlderThanOrEquals(ServerVersion.V_1_8_8)
-                || this.user != null && this.user.getDimensionType().hasSkyLight()
-                && this.serverVersion.isOlderThan(ServerVersion.V_1_14);
-
-        Object originalBuffer = this.buffer;
-        int dataLength;
-        if (this.serverVersion.isOlderThanOrEquals(ServerVersion.V_1_7_10)) {
-            // decompress data and replace contents of this packet wrapper with the chunk data temporarily
-            byte[] data = this.inflate(this.readByteArray(), chunkMask, fullChunk);
-            this.buffer = UnpooledByteBufAllocationHelper.wrappedBuffer(data);
-            dataLength = data.length;
-        } else {
-            // let the chunk reader decide how to handle reading
-            dataLength = this.readVarInt();
-        }
-        BaseChunk[] chunks;
-        try {
-            int expectedReaderIndex = ByteBufHelper.readerIndex(this.buffer) + dataLength;
-            chunks = this.getChunkReader().read(this.user.getDimensionType(), chunkMask, secondaryChunkMask,
-                    fullChunk, hasBlockLight, hasSkyLight, chunkSize, dataLength, this);
-
-            if (hasBiomeData && this.serverVersion.isOlderThan(ServerVersion.V_1_15)) {
-                if (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_13)) { // Uses ints
-                    biomeDataInts = new int[16 * 16];
-                    for (int i = 0; i < biomeDataInts.length; i++) {
-                        biomeDataInts[i] = this.readInt();
-                    }
-                } else if (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9)) { // Uses bytes
-                    biomeDataBytes = new byte[16 * 16];
-                    for (int i = 0; i < biomeDataBytes.length; i++) {
-                        biomeDataBytes[i] = this.readByte();
-                    }
-                } else if (dataLength == 0) {
-                    // if cache-chunk-maps is enabled in paper, paper doesn't send any biome data on chunk unload
-                    biomeDataBytes = new byte[0];
-                } else {
-                    biomeDataBytes = this.readBytes(16 * 16);
-                }
-            }
-
-            // verify the full chunk has been read
-            int readerIndex = ByteBufHelper.readerIndex(this.buffer);
-            if (expectedReaderIndex != readerIndex) {
-                if (expectedReaderIndex < readerIndex) {
-                    // we advanced too far, error
-                    throw new RuntimeException("Error while decoding chunk at " + chunkX + " " + chunkZ
-                            + "; expected reader index " + expectedReaderIndex + ", got " + readerIndex);
-                }
-                // we didn't read the whole buffer, skip the rest
-                ByteBufHelper.readerIndex(this.buffer, expectedReaderIndex);
-            }
-        } finally {
-            // change buffer back if it has been switched
-            if (this.buffer != originalBuffer) {
-                ByteBufHelper.release(this.buffer);
-                this.buffer = originalBuffer;
-            }
-        }
-
+    @Override
+    protected TileEntity[] readTileEntities() {
         // Tile entities are not sent with this packet on 1.8 and below
         // on 1.9 and above for all versions, tile entities are sent with the chunk data
         // (And can be sent with their own packet too!)
@@ -230,61 +106,7 @@ public class WrapperPlayServerChunkData extends PacketWrapper<WrapperPlayServerC
             this.lightData = LightData.read(this);
         }
 
-        if (hasBiomeData) {
-            if (hasHeightMaps) {
-                if (bytesInsteadOfInts) {
-                    column = new Column(chunkX, chunkZ, true, chunks, tileEntities, heightmapsNbt, biomeDataBytes);
-                } else {
-                    column = new Column(chunkX, chunkZ, true, chunks, tileEntities, heightmapsNbt, biomeDataInts);
-                }
-            } else {
-                if (bytesInsteadOfInts) {
-                    column = new Column(chunkX, chunkZ, true, chunks, tileEntities, biomeDataBytes);
-                } else {
-                    column = new Column(chunkX, chunkZ, true, chunks, tileEntities, biomeDataInts);
-                }
-            }
-        } else {
-            if (hasHeightMaps) {
-                if (modernHeightmaps != null) {
-                    this.column = new Column(chunkX, chunkZ, fullChunk, chunks, tileEntities, modernHeightmaps);
-                } else {
-                    this.column = new Column(chunkX, chunkZ, fullChunk, chunks, tileEntities, heightmapsNbt);
-                }
-            } else {
-                column = new Column(chunkX, chunkZ, fullChunk, chunks, tileEntities);
-            }
-        }
-    }
-
-    // this step is only needed for 1.7.x
-    private byte[] inflate(byte[] input, BitSet mask, boolean fullChunk) {
-        // Determine inflated data length.
-        int chunkCount = 0;
-
-        for (int count = 0; count < 16; count++) {
-            chunkCount += mask.get(count) ? 1 : 0;
-        }
-
-        int len = 12288 * chunkCount;
-        if (fullChunk) {
-            len += 256;
-        }
-
-        byte[] data = new byte[len];
-        // Inflate chunk data.
-        Inflater inflater = new Inflater();
-        inflater.setInput(input, 0, input.length);
-
-        try {
-            inflater.inflate(data);
-        } catch (DataFormatException e) {
-            e.printStackTrace();
-        } finally {
-            inflater.end();
-        }
-
-        return data;
+        return tileEntities;
     }
 
     @Override
@@ -456,18 +278,8 @@ public class WrapperPlayServerChunkData extends PacketWrapper<WrapperPlayServerC
 
     @Override
     public void copy(WrapperPlayServerChunkData wrapper) {
-        this.column = wrapper.column;
-        this.lightData = wrapper.lightData != null
-                ? wrapper.lightData.clone() : null;
-        this.ignoreOldData = wrapper.ignoreOldData;
-    }
-
-    public Column getColumn() {
-        return column;
-    }
-
-    public void setColumn(Column column) {
-        this.column = column;
+        super.copy(wrapper);
+        this.lightData = wrapper.lightData != null ? wrapper.lightData.clone() : null;
     }
 
     public LightData getLightData() {
@@ -476,27 +288,5 @@ public class WrapperPlayServerChunkData extends PacketWrapper<WrapperPlayServerC
 
     public void setLightData(LightData lightData) {
         this.lightData = lightData;
-    }
-
-    public boolean isIgnoreOldData() {
-        return ignoreOldData;
-    }
-
-    public void setIgnoreOldData(boolean ignoreOldData) {
-        this.ignoreOldData = ignoreOldData;
-    }
-
-    private ChunkReader getChunkReader() {
-        if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_18)) {
-            return chunkReader_v1_18;
-        } else if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16)) {
-            return chunkReader_v1_16;
-        } else if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_9)) {
-            return chunkReader_v1_9;
-        } else if (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_8)) {
-            return chunkReader_v1_8;
-        } else {
-            return chunkReader_v1_7;
-        }
     }
 }
