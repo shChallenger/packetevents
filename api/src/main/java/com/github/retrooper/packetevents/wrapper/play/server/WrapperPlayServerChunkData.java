@@ -40,7 +40,7 @@ import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import java.util.BitSet;
 import java.util.zip.Deflater;
 
-public class WrapperPlayServerChunkData extends WrapperPlayServerChunkDataColumn<WrapperPlayServerChunkData> {
+public class WrapperPlayServerChunkData extends WrapperPlayServerChunkDataAbstract<WrapperPlayServerChunkData> {
 
     // 1.18 only (lighting) - for writing data
     private LightData lightData;
