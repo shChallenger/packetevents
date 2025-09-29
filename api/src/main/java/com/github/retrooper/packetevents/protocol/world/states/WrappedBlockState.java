@@ -41,14 +41,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static com.github.retrooper.packetevents.util.adventure.AdventureIndexUtil.indexValueOrThrow;
@@ -106,7 +99,7 @@ public class WrappedBlockState {
     private static final WrappedBlockState AIR = new WrappedBlockState(StateTypes.AIR,
             new EnumMap<>(StateValue.class), 0, AIR_MAPPING_INDEX);
     private static final Map<String, WrappedBlockState>[] BY_STRING = new Map[HIGHEST_MAPPING_INDEX + 1];
-    private static final Map<Integer, WrappedBlockState>[] BY_ID = new Map[HIGHEST_MAPPING_INDEX + 1];
+    private static final WrappedBlockState[][] BY_ID = new WrappedBlockState[HIGHEST_MAPPING_INDEX + 1][];
     private static final Map<WrappedBlockState, String>[] INTO_STRING = new Map[HIGHEST_MAPPING_INDEX + 1];
     private static final Map<WrappedBlockState, Integer>[] INTO_ID = new Map[HIGHEST_MAPPING_INDEX + 1];
     private static final Map<StateType, WrappedBlockState>[] DEFAULT_STATES = new Map[HIGHEST_MAPPING_INDEX + 1];
@@ -117,7 +110,6 @@ public class WrappedBlockState {
         STRING_UPDATER.put("grass_path", "dirt_path"); // 1.16 -> 1.17
 
         Arrays.fill(BY_STRING, Collections.emptyMap());
-        Arrays.fill(BY_ID, Collections.emptyMap());
         Arrays.fill(INTO_STRING, Collections.emptyMap());
         Arrays.fill(INTO_ID, Collections.emptyMap());
         Arrays.fill(DEFAULT_STATES, Collections.emptyMap());
@@ -125,7 +117,8 @@ public class WrappedBlockState {
         // because AIR is a constant, preload all data for this into a separate mapping index
         String airName = AIR.getType().getMapped().getName().getKey();
         BY_STRING[AIR_MAPPING_INDEX] = Collections.singletonMap(airName, AIR);
-        BY_ID[AIR_MAPPING_INDEX] = Collections.singletonMap(AIR.getGlobalId(), AIR);
+        BY_ID[AIR_MAPPING_INDEX] = new WrappedBlockState[AIR.getGlobalId() + 1];
+        BY_ID[AIR_MAPPING_INDEX][AIR.getGlobalId()] = AIR;
         INTO_STRING[AIR_MAPPING_INDEX] = Collections.singletonMap(AIR, airName);
         INTO_ID[AIR_MAPPING_INDEX] = Collections.singletonMap(AIR, AIR.getGlobalId());
         DEFAULT_STATES[AIR_MAPPING_INDEX] = Collections.singletonMap(AIR.getType(), AIR);
@@ -167,14 +160,14 @@ public class WrappedBlockState {
 
     private static byte loadMappings(ClientVersion version) {
         byte mappingsIndex = getMappingsIndex(version);
-        if (!PRELOAD_BLOCK_STATE_MAPPINGS && BY_ID[mappingsIndex].isEmpty()) {
+        if (!PRELOAD_BLOCK_STATE_MAPPINGS && BY_ID[mappingsIndex] == null) {
             loadMappings0(getMappingsVersion(version), mappingsIndex); // try to load mappings
         }
         return mappingsIndex;
     }
 
     private static synchronized void loadMappings0(ClientVersion version, byte mappingsIndex) {
-        if (!BY_ID[mappingsIndex].isEmpty()) {
+        if (BY_ID[mappingsIndex] != null) {
             return; // already loaded
         }
         PacketEvents.getAPI().getLogger().info("Loading block mappings for " + version + "/" + mappingsIndex + "...");
@@ -205,7 +198,7 @@ public class WrappedBlockState {
 
         Map<Map<StateValue, Object>, StateCacheValue> cache = new HashMap<>();
         for (byte i = 0; i < HIGHEST_MAPPING_INDEX; i++) {
-            Map<Integer, WrappedBlockState> map = BY_ID[i];
+            Map<String, WrappedBlockState> map = BY_STRING[i];
             if (map == null) {
                 continue; // not loaded yet
             }
@@ -300,8 +293,8 @@ public class WrappedBlockState {
     public static WrappedBlockState getByGlobalId(ClientVersion version, int globalID, boolean clone) {
         if (globalID == 0) return AIR; // Hardcode for performance
         byte mappingsIndex = loadMappings(version);
-        final WrappedBlockState state = BY_ID[mappingsIndex].getOrDefault(globalID, AIR);
-        return clone ? state.clone() : state;
+        final WrappedBlockState state = BY_ID[mappingsIndex][globalID];
+        return state == null ? AIR : (clone ? state.clone() : state);
     }
 
     @NotNull
@@ -358,6 +351,8 @@ public class WrappedBlockState {
         Map<WrappedBlockState, String> stateToStringMap = new HashMap<>();
         Map<StateType, WrappedBlockState> stateTypeToBlockStateMap = new HashMap<>();
 
+        int maxCombinedId = 0;
+
         try (final SequentialNBTReader.Compound compound = MappingHelper.decompress(MAPPINGS_ASSETS_LEGACY)) {
             compound.skipOne(); // Skip version
 
@@ -377,6 +372,7 @@ public class WrappedBlockState {
                     int id = Integer.parseInt(elementName.substring(0, idIndex));
                     int data = Integer.parseInt(elementName.substring(idIndex + 1));
                     int combinedID = (id << 4) | data;
+                    maxCombinedId = Math.max(maxCombinedId, combinedID);
 
                     SequentialNBTReader.Compound dataContent = (SequentialNBTReader.Compound) element.getValue();
                     StateCacheValue stateCache;
@@ -425,7 +421,10 @@ public class WrappedBlockState {
                 }
             }
 
-            BY_ID[LEGACY_MAPPING_INDEX] = stateByIdMap;
+            BY_ID[LEGACY_MAPPING_INDEX] = new WrappedBlockState[maxCombinedId + 1];
+            for (Map.Entry<Integer, WrappedBlockState> entry : stateByIdMap.entrySet()) {
+                BY_ID[LEGACY_MAPPING_INDEX][entry.getKey()] = entry.getValue();
+            }
             INTO_ID[LEGACY_MAPPING_INDEX] = stateToIdMap;
             BY_STRING[LEGACY_MAPPING_INDEX] = stateByStringMap;
             INTO_STRING[LEGACY_MAPPING_INDEX] = stateToStringMap;
@@ -527,7 +526,10 @@ public class WrappedBlockState {
                 }
             }
 
-            BY_ID[mappingIndex] = stateByIdMap;
+            BY_ID[mappingIndex] = new WrappedBlockState[id];
+            for (Map.Entry<Integer, WrappedBlockState> entry : stateByIdMap.entrySet()) {
+                BY_ID[mappingIndex][entry.getKey()] = entry.getValue();
+            }
             INTO_ID[mappingIndex] = stateToIdMap;
             BY_STRING[mappingIndex] = stateByStringMap;
             INTO_STRING[mappingIndex] = stateToStringMap;
@@ -1551,7 +1553,8 @@ public class WrappedBlockState {
         int oldGlobalID = globalID;
         globalID = getGlobalIdNoCache();
         if (globalID == -1) { // -1 maps to no block as negative ID are impossible
-            WrappedBlockState blockState = BY_ID[this.mappingsIndex].getOrDefault(oldGlobalID, AIR).clone();
+            WrappedBlockState blockState = BY_ID[this.mappingsIndex][oldGlobalID];
+            blockState = blockState == null ? AIR : blockState.clone();
             this.type = blockState.type;
             this.globalID = blockState.globalID;
             this.data = new HashMap<>(blockState.data);
