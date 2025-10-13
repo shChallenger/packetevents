@@ -64,6 +64,7 @@ public class User implements IRegistryHolder {
     private ClientVersion clientVersion;
     private final UserProfile profile;
     private int entityId = -1;
+    private volatile Object userRef;
 
     private DimensionType dimensionType = DimensionTypes.OVERWORLD;
     private final Map<ResourceLocation, IRegistry<?>> registries = new HashMap<>();
@@ -91,6 +92,28 @@ public class User implements IRegistryHolder {
 
     public Object getChannel() {
         return channel;
+    }
+
+    /**
+     * Get a user reference cast to the specified class.
+     * This reference is not used by PacketEvents and can be used to store any object.
+     *
+     * @param clazz the class to cast the reference to
+     * @return the user reference cast to the specified class, or null if not set or of a different type
+     * @param <T> the type of the reference
+     */
+    public <T> T getUserRef(Class<T> clazz) {
+        return clazz.cast(userRef);
+    }
+
+    /**
+     * Store a custom reference in this user.
+     * This reference is not used by PacketEvents and can be used to store any object.
+     *
+     * @param userRef the reference to store
+     */
+    public void setUserRef(Object userRef) {
+        this.userRef = userRef;
     }
 
     public InetSocketAddress getAddress() {
