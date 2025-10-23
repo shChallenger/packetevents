@@ -609,17 +609,20 @@ public class ItemStack {
         return this.registryHolder;
     }
 
+    public boolean compare(ItemStack itemStack) {
+        return this.type.equals(itemStack.type)
+                && Objects.equals(this.nbt, itemStack.nbt)
+                && Objects.equals(this.components, itemStack.components)
+                && this.legacyData == itemStack.legacyData;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
         if (obj instanceof ItemStack) {
             ItemStack itemStack = (ItemStack) obj;
-            return this.type.equals(itemStack.type)
-                    && this.amount == itemStack.amount
-                    && Objects.equals(this.nbt, itemStack.nbt)
-                    && Objects.equals(this.components, itemStack.components)
-                    && this.legacyData == itemStack.legacyData;
+            return this.amount == itemStack.amount && compare(itemStack);
         }
         return false;
     }
