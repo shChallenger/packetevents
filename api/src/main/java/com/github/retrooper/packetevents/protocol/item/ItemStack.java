@@ -263,6 +263,13 @@ public class ItemStack {
         return itemstack;
     }
 
+    public ItemStack withAmount(int amount) {
+        ItemStack itemstack = this.copy();
+        itemstack.setAmount(amount);
+
+        return itemstack;
+    }
+
     public ItemStack copy() {
         if (this.isEmpty()) {
             return EMPTY;
