@@ -256,8 +256,7 @@ public class NetStreamInput extends FilterInputStream {
         }
 
         long[] l = new long[length];
-        int read = this.readLongs(l);
-        if (read < length) {
+        if (!this.readLongs(l)) {
             throw new IllegalStateException();
         }
 
@@ -265,21 +264,25 @@ public class NetStreamInput extends FilterInputStream {
     }
 
 
-    public int readLongs(long[] l) {
-        return this.readLongs(l, 0, l.length);
-    }
+    public boolean readLongs(long[] l) {
+        byte[] read = new byte[l.length << 3];
 
-
-    public int readLongs(long[] l, int offset, int length) {
-        for (int index = offset; index < offset + length; index++) {
-            try {
-                l[index] = this.readLong();
-            } catch (Exception e) {
-                return index - offset;
+        try {
+            int readed = this.read(read, 0, read.length);
+            if (readed != read.length) {
+                return false;
             }
+        } catch (Exception e) {
+            return false;
         }
 
-        return length;
+        for (int index = 0; index < l.length; index++) {
+            int bIndex = index << 3;
+            long value = ((long) read[bIndex] << 56) + ((long) (read[bIndex + 1] & 255) << 48) + ((long) (read[bIndex + 2] & 255) << 40) + ((long) (read[bIndex + 3] & 255) << 32) + ((long) (read[bIndex + 4] & 255) << 24) + ((read[bIndex + 5] & 255) << 16) + ((read[bIndex + 6] & 255) << 8) + (read[bIndex + 7] & 255);
+            l[index] = value;
+        }
+
+        return true;
     }
 
 
