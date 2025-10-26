@@ -26,6 +26,7 @@ import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.util.ExceptionUtil;
 import com.github.retrooper.packetevents.util.PacketEventsImplHelper;
+import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDisconnect;
 import io.github.retrooper.packetevents.injector.connection.ServerConnectionInitializer;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
@@ -129,9 +130,11 @@ public class PacketEventsEncoder extends ChannelOutboundHandlerAdapter {
         promise.addListener(p -> this.promise = oldPromise);
         this.promise = promise;
 
+        PacketWrapper<?> beforePacket = null, afterPacket = null;
+
         if (msg instanceof ByteBuf) {
             boolean needsRecompression = !this.handledCompression && this.handleCompression(ctx, (ByteBuf) msg);
-            this.handleClientBoundPacket(ctx.channel(), this.user, this.player, (ByteBuf) msg, this.promise);
+            PacketSendEvent sendEvent = this.handleClientBoundPacket(ctx.channel(), this.user, this.player, (ByteBuf) msg, this.promise);
 
             // check if the packet got cancelled
             if (!((ByteBuf) msg).isReadable()) {
@@ -143,9 +146,16 @@ public class PacketEventsEncoder extends ChannelOutboundHandlerAdapter {
             if (needsRecompression) {
                 this.compress(ctx, (ByteBuf) msg);
             }
+
+            if (sendEvent != null) {
+                beforePacket = sendEvent.getBeforePacket();
+                afterPacket = sendEvent.getAfterPacket();
+            }
         }
 
+        if (beforePacket != null) user.writePacketSilently(beforePacket);
         ctx.write(msg, promise);
+        if (afterPacket != null) user.writePacketSilently(afterPacket);
     }
 
     @Override

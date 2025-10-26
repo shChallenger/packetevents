@@ -18,19 +18,21 @@
 
 package com.github.retrooper.packetevents.event;
 
-import com.github.retrooper.packetevents.event.simple.PacketHandshakeSendEvent;
 import com.github.retrooper.packetevents.exception.PacketProcessException;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.netty.buffer.ByteBufHelper;
 import com.github.retrooper.packetevents.protocol.PacketSide;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.User;
+import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class PacketSendEvent extends ProtocolPacketEvent {
     private List<Runnable> tasksAfterSend = null;
+    private PacketWrapper<?> beforePacket = null;
+    private PacketWrapper<?> afterPacket = null;
 
     protected PacketSendEvent(Object channel, User user, Object player, Object rawByteBuf,
                               boolean autoProtocolTranslation) throws PacketProcessException {
@@ -51,7 +53,6 @@ public class PacketSendEvent extends ProtocolPacketEvent {
         listener.onPacketSend(this);
     }
 
-
     public List<Runnable> getTasksAfterSend() {
         if (tasksAfterSend == null) {
             tasksAfterSend = new ArrayList<>();
@@ -61,6 +62,22 @@ public class PacketSendEvent extends ProtocolPacketEvent {
 
     public boolean hasTasksAfterSend() {
         return tasksAfterSend != null && !tasksAfterSend.isEmpty();
+    }
+
+    public void setBeforePacket(PacketWrapper<?> beforePacket) {
+        this.beforePacket = beforePacket;
+    }
+
+    public PacketWrapper<?> getBeforePacket() {
+        return beforePacket;
+    }
+
+    public void setAfterPacket(PacketWrapper<?> afterPacket) {
+        this.afterPacket = afterPacket;
+    }
+
+    public PacketWrapper<?> getAfterPacket() {
+        return afterPacket;
     }
 
     @Override
