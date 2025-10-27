@@ -22,80 +22,64 @@
  * https://github.com/Steveice10/MCProtocolLib
  */
 
-package com.github.retrooper.packetevents.protocol.world.chunk.palette;
+package com.github.retrooper.packetevents.protocol.world.chunk.palette.generic;
 
 import com.github.retrooper.packetevents.protocol.stream.NetStreamInput;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.reader.CustomPaletteReader;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
+import java.util.HashMap;
+
 /**
- * A palette backed by a List.
+ * A palette backed by a map.
  */
-//TODO Equals & hashcode
-public class ListPalette implements Palette {
+public class MapPalette extends CustomPaletteReader {
 
-    private final int bits;
-    private final int[] data;
-    private int nextId = 0;
+    // TODO: Can we use fastutils here?
+    private final HashMap<Integer, Integer> stateToId = new HashMap<>();
 
-    public ListPalette(int bitsPerEntry) {
-        this.bits = bitsPerEntry;
-        this.data = new int[1 << bitsPerEntry];
+    public MapPalette(int bitsPerEntry) {
+        super(bitsPerEntry);
     }
 
     @Deprecated
-    public ListPalette(int bitsPerEntry, NetStreamInput in) {
+    public MapPalette(int bitsPerEntry, NetStreamInput in) {
         this(bitsPerEntry);
 
-        int paletteLength = in.readVarInt();
+        int paletteLength = in.readVarInt2Bytes();
         for (int i = 0; i < paletteLength; i++) {
-            this.data[i] = in.readVarInt();
+            int state = in.readVarInt2Bytes();
+            this.data[i] = state;
+            this.stateToId.putIfAbsent(state, i);
         }
         this.nextId = paletteLength;
     }
 
-    public ListPalette(int bitsPerEntry, PacketWrapper<?> wrapper) {
+    public MapPalette(int bitsPerEntry, PacketWrapper<?> wrapper) {
         this(bitsPerEntry);
 
         int paletteLength = wrapper.readVarInt();
         for (int i = 0; i < paletteLength; i++) {
-            this.data[i] = wrapper.readVarInt();
+            int state = wrapper.readVarInt();
+            this.data[i] = state;
+            this.stateToId.putIfAbsent(state, i);
         }
         this.nextId = paletteLength;
     }
 
     @Override
-    public int size() {
-        return this.nextId;
-    }
-
-    @Override
     public int stateToId(int state) {
-        int id = -1;
-        for (int i = 0; i < this.nextId; i++) { // Linear search for state
-            if (this.data[i] == state) {
-                id = i;
-                break;
-            }
-        }
-        if (id == -1 && this.size() < this.data.length) {
+        Integer id = this.stateToId.get(state);
+        if (id == null && this.nextId < this.data.length) {
             id = this.nextId++;
             this.data[id] = state;
+            this.stateToId.put(state, id);
         }
 
-        return id;
-    }
-
-    @Override
-    public int idToState(int id) {
-        if (id >= 0 && id < this.size()) {
-            return this.data[id];
+        if (id != null) {
+            return id;
         } else {
-            return 0;
+            return -1;
         }
-    }
-
-    @Override
-    public int getBits() {
-        return this.bits;
     }
 }

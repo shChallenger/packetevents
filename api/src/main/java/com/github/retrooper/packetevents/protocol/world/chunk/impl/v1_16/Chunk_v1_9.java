@@ -27,6 +27,7 @@ import com.github.retrooper.packetevents.protocol.stream.NetStreamOutputWrapper;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.NibbleArray3d;
 import com.github.retrooper.packetevents.protocol.world.chunk.palette.DataPalette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteType;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import org.jetbrains.annotations.Nullable;
@@ -62,30 +63,53 @@ public class Chunk_v1_9 implements BaseChunk {
     }
 
     /**
-     * @deprecated use {@link #read(PacketWrapper, boolean, boolean)} instead
+     * @deprecated use {@link #read(PaletteFactory, PacketWrapper, boolean, boolean, boolean, boolean)} instead
      */
     @Deprecated
-    public Chunk_v1_9(NetStreamInput in, boolean hasBlockLight, boolean hasSkyLight) {
-        this(in, hasBlockLight, hasSkyLight, PacketEvents.getAPI().getServerManager().getVersion());
+    public Chunk_v1_9(PaletteFactory factory, NetStreamInput in, boolean hasBlockLight, boolean hasSkyLight) {
+        this(factory, in, hasBlockLight, hasSkyLight, false, false, PacketEvents.getAPI().getServerManager().getVersion());
     }
 
     @Deprecated
-    private Chunk_v1_9(NetStreamInput in, boolean hasBlockLight, boolean hasSkyLight, ServerVersion version) {
+    private Chunk_v1_9(PaletteFactory factory, NetStreamInput in, boolean hasBlockLight,
+                       boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight, ServerVersion version) {
         // 1.14+ includes block count in chunk data
         this.blockCount = version.isNewerThanOrEquals(ServerVersion.V_1_14)
                 ? in.readShort() : Integer.MAX_VALUE;
         // singleton palette got added with 1.18 which isn't supported by this chunk section implementation
         this.dataPalette = version.isNewerThanOrEquals(ServerVersion.V_1_16)
-                ? DataPalette.read(in, PaletteType.CHUNK, false)
-                : DataPalette.readLegacy(in);
+                ? DataPalette.read(factory, in, PaletteType.CHUNK, false)
+                : DataPalette.readLegacy(factory, in);
 
-        this.blockLight = hasBlockLight ? new NibbleArray3d(in, LIGHT_NIBBLES_SIZE) : null;
-        this.skyLight = hasSkyLight ? new NibbleArray3d(in, LIGHT_NIBBLES_SIZE) : null;
+        int skip = 0;
+
+        if (hasBlockLight && !skipBlockLight) {
+            this.blockLight = new NibbleArray3d(in, LIGHT_NIBBLES_SIZE);
+        } else {
+            if (hasBlockLight) {
+                skip = LIGHT_NIBBLES_SIZE;
+            }
+            this.blockLight = null;
+        }
+
+        if (hasSkyLight && !skipSkyLight) {
+            this.skyLight = new NibbleArray3d(in, LIGHT_NIBBLES_SIZE);
+        } else {
+            if (hasSkyLight) {
+                skip += LIGHT_NIBBLES_SIZE;
+            }
+            this.skyLight = null;
+        }
+
+        if (skip != 0) {
+            in.skip(skip);
+        }
     }
 
-    public static Chunk_v1_9 read(PacketWrapper<?> wrapper, boolean hasBlockLight, boolean hasSkyLight) {
+    public static Chunk_v1_9 read(PaletteFactory factory, PacketWrapper<?> wrapper, boolean hasBlockLight,
+                                  boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight) {
         NetStreamInputWrapper legacyInput = new NetStreamInputWrapper(wrapper);
-        return new Chunk_v1_9(legacyInput, hasBlockLight, hasSkyLight, wrapper.getServerVersion());
+        return new Chunk_v1_9(factory, legacyInput, hasBlockLight, hasSkyLight, skipBlockLight, skipSkyLight, wrapper.getServerVersion());
     }
 
     public static void write(PacketWrapper<?> wrapper, Chunk_v1_9 chunk) {

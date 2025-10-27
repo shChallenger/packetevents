@@ -20,6 +20,7 @@ package com.github.retrooper.packetevents.protocol.world.chunk.reader.impl;
 
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_16.Chunk_v1_9;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.ChunkReader;
 import com.github.retrooper.packetevents.protocol.world.dimension.DimensionType;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
@@ -30,14 +31,15 @@ public class ChunkReader_v1_16 implements ChunkReader {
 
     @Override
     public BaseChunk[] read(
-            DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
-            boolean hasBlockLight, boolean hasSkyLight, int chunkSize, int arrayLength, PacketWrapper<?> wrapper
+            PaletteFactory factory, DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
+            boolean hasBlockLight, boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight, int chunkSize,
+            int arrayLength, PacketWrapper<?> wrapper
     ) {
         BaseChunk[] chunks = new BaseChunk[chunkSize];
 
         for (int index = 0; index < chunks.length; ++index) {
             if (chunkMask.get(index)) {
-                chunks[index] = Chunk_v1_9.read(wrapper, false, false);
+                chunks[index] = Chunk_v1_9.read(factory, wrapper, false, false, false, false);
             }
         }
 

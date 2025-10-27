@@ -79,8 +79,8 @@ public class WrapperPlayServerChunkDataBulk extends PacketWrapper<WrapperPlaySer
         for (int column = 0; column < columns; column++) {
             BitSet mask = BitSet.valueOf(new long[]{data[column].getMask()});
             // pass wrapper through at the position where the data shold be located
-            BaseChunk[] chunkData = new ChunkReader_v1_8().read(this.user.getDimensionType(), mask,
-                    null, true, skylight, false,
+            BaseChunk[] chunkData = new ChunkReader_v1_8().read(null, this.user.getDimensionType(), mask,
+                    null, true, skylight, false, false, false,
                     16, data[column].getData().length, this);
             this.chunks[column] = chunkData;
             this.biomeData[column] = this.readBytes(16 * 16);
@@ -139,8 +139,8 @@ public class WrapperPlayServerChunkDataBulk extends PacketWrapper<WrapperPlaySer
 
             // read data into chunks and biome data from inflated buffer
             // BitSet set, BitSet sevenExtendedMask, boolean fullChunk, boolean hasSkyLight, boolean checkForSky, int chunkSize, byte[] data, NetStreamInput dataIn
-            BaseChunk[] chunkData = new ChunkReader_v1_7().read(user.getDimensionType(), chunkMask,
-                    extendedChunkMask, true, skylight, false,
+            BaseChunk[] chunkData = new ChunkReader_v1_7().read(null, user.getDimensionType(), chunkMask,
+                    extendedChunkMask, true, skylight, false, false, false,
                     16, length, this);
             byte[] biomeDataBytes = this.readBytes(16 * 16); // let's hope the server knows the right data length
 

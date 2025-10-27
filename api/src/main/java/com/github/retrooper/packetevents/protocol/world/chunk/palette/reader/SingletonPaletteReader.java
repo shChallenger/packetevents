@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.github.retrooper.packetevents.protocol.world.chunk.palette;
+package com.github.retrooper.packetevents.protocol.world.chunk.palette.reader;
 
 import com.github.retrooper.packetevents.protocol.stream.NetStreamInput;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.Palette;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
 /**
@@ -27,34 +28,26 @@ import com.github.retrooper.packetevents.wrapper.PacketWrapper;
  * A palette containing one state.
  * Credit to MCProtocolLib
  */
-public class SingletonPalette implements Palette {
+public class SingletonPaletteReader implements Palette {
 
-    private final int state;
+    protected final int state;
 
     @Deprecated
-    public SingletonPalette(NetStreamInput in) {
-        this(in.readVarInt());
+    public SingletonPaletteReader(NetStreamInput in) {
+        this(in.readVarInt2Bytes());
     }
 
-    public SingletonPalette(PacketWrapper<?> wrapper) {
+    public SingletonPaletteReader(PacketWrapper<?> wrapper) {
         this(wrapper.readVarInt());
     }
 
-    public SingletonPalette(int state) {
+    public SingletonPaletteReader(int state) {
         this.state = state;
     }
 
     @Override
     public int size() {
         return 1;
-    }
-
-    @Override
-    public int stateToId(int state) {
-        if (this.state == state) {
-            return 0;
-        }
-        return -1;
     }
 
     @Override

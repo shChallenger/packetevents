@@ -22,27 +22,24 @@
  * https://github.com/Steveice10/MCProtocolLib
  */
 
-package com.github.retrooper.packetevents.protocol.world.chunk.palette;
+package com.github.retrooper.packetevents.protocol.world.chunk.palette.reader;
+
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.Palette;
 
 /**
  * A global palette that maps 1:1.
  */
 //TODO Equals & hashcode
-public class GlobalPalette implements Palette {
+public class GlobalPaletteReader implements Palette {
 
     // this is the amount of bits required to store the biggest state id number
     public static final int BITS_PER_ENTRY = 15;
 
-    public static final GlobalPalette INSTANCE = new GlobalPalette();
+    public static final GlobalPaletteReader INSTANCE = new GlobalPaletteReader();
 
     @Override
     public int size() {
         return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public int stateToId(int state) {
-        return state;
     }
 
     @Override

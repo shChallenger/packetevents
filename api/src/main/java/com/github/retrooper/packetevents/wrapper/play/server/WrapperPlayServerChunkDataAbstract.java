@@ -25,6 +25,7 @@ import com.github.retrooper.packetevents.netty.buffer.UnpooledByteBufAllocationH
 import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.world.chunk.*;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.ChunkReader;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.*;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
@@ -126,13 +127,12 @@ public abstract class WrapperPlayServerChunkDataAbstract<T extends WrapperPlaySe
             }
         }
 
-        boolean hasBlockLight = this.doReadBlockLight()
-                && (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16) || serverVersion.isOlderThan(ServerVersion.V_1_14))
+        boolean hasBlockLight = (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16) || serverVersion.isOlderThan(ServerVersion.V_1_14))
                 && !serverVersion.isOlderThanOrEquals(ServerVersion.V_1_8_8);
-        boolean hasSkyLight = this.doReadSkyLight() && (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16)
+        boolean hasSkyLight = this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16)
                 || this.serverVersion.isOlderThanOrEquals(ServerVersion.V_1_8_8)
                 || this.user != null && this.user.getDimensionType().hasSkyLight()
-                && this.serverVersion.isOlderThan(ServerVersion.V_1_14));
+                && this.serverVersion.isOlderThan(ServerVersion.V_1_14);
 
         Object originalBuffer = this.buffer;
         if (this.serverVersion.isOlderThanOrEquals(ServerVersion.V_1_7_10)) {
@@ -147,8 +147,9 @@ public abstract class WrapperPlayServerChunkDataAbstract<T extends WrapperPlaySe
         BaseChunk[] chunks;
         try {
             int expectedReaderIndex = ByteBufHelper.readerIndex(this.buffer) + biomeDataInfo.dataLength;
-            chunks = this.getChunkReader().read(this.user.getDimensionType(), chunkMask, secondaryChunkMask,
-                    fullChunk, hasBlockLight, hasSkyLight, chunkSize, biomeDataInfo.dataLength, this);
+            chunks = this.getChunkReader().read(this.getPaletteFactory(), this.user.getDimensionType(), chunkMask,
+                    secondaryChunkMask, fullChunk, hasBlockLight, hasSkyLight, skipBlockLight(), skipSkyLight(),
+                    chunkSize, biomeDataInfo.dataLength, this);
 
             this.readBiomeData(expectedReaderIndex, biomeDataInfo);
 
@@ -199,9 +200,11 @@ public abstract class WrapperPlayServerChunkDataAbstract<T extends WrapperPlaySe
         }
     }
 
-    protected abstract boolean doReadBlockLight();
+    protected abstract PaletteFactory getPaletteFactory();
 
-    protected abstract boolean doReadSkyLight();
+    protected abstract boolean skipBlockLight();
+
+    protected abstract boolean skipSkyLight();
 
     protected abstract void readBiomeData(int expectedReaderIndex, BiomeDataInfo biomeDataInfo);
 

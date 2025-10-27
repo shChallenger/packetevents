@@ -23,6 +23,9 @@ import com.github.retrooper.packetevents.netty.buffer.UnpooledByteBufAllocationH
 import com.github.retrooper.packetevents.protocol.stream.NetStreamInput;
 import com.github.retrooper.packetevents.protocol.world.Dimension;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.Palette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.generic.PaletteGenericFactory;
 import com.github.retrooper.packetevents.protocol.world.dimension.DimensionType;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
@@ -33,16 +36,17 @@ public interface ChunkReader {
 
     @Deprecated
     default BaseChunk[] read(
-            Dimension dimension, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
-            boolean hasBlockLight, boolean hasSkyLight, int chunkSize, byte[] data, NetStreamInput dataIn
+            PaletteFactory factory, Dimension dimension, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
+            boolean hasBlockLight, boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight,
+            int chunkSize, byte[] data, NetStreamInput dataIn
     ) {
         // backwards compat
         DimensionType dimensionType = dimension.asDimensionType(null, null);
         PacketWrapper<?> wrapper = PacketWrapper.createUniversalPacketWrapper(
                 UnpooledByteBufAllocationHelper.wrappedBuffer(data));
         try {
-            return this.read(dimensionType, chunkMask, secondaryChunkMask, fullChunk,
-                    hasBlockLight, hasSkyLight, chunkSize, data.length, wrapper);
+            return this.read(factory, dimensionType, chunkMask, secondaryChunkMask, fullChunk,
+                    hasBlockLight, hasSkyLight, skipBlockLight, skipSkyLight, chunkSize, data.length, wrapper);
         } finally {
             ByteBufHelper.release(wrapper.buffer);
         }
@@ -50,24 +54,25 @@ public interface ChunkReader {
 
     @Deprecated
     default BaseChunk[] read(
-            DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
-            boolean hasBlockLight, boolean hasSkyLight, int chunkSize, byte[] data, NetStreamInput dataIn
+            PaletteFactory factory, DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask,
+            boolean fullChunk, boolean hasBlockLight, boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight,
+            int chunkSize, byte[] data, NetStreamInput dataIn
     ) {
         // backwards compat
         Dimension dimension = Dimension.fromDimensionType(dimensionType, null, null);
-        return this.read(dimension, chunkMask, secondaryChunkMask, fullChunk,
-                hasBlockLight, hasSkyLight, chunkSize, data, dataIn);
+        return this.read(factory, dimension, chunkMask, secondaryChunkMask, fullChunk,
+                hasBlockLight, hasSkyLight, skipBlockLight, skipSkyLight, chunkSize, data, dataIn);
     }
 
     default BaseChunk[] read(
-            DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask,
-            boolean fullChunk, boolean hasBlockLight, boolean hasSkyLight, int chunkSize,
-            int arrayLength, PacketWrapper<?> wrapper
+            PaletteFactory factory, DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask,
+            boolean fullChunk, boolean hasBlockLight, boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight,
+            int chunkSize, int arrayLength, PacketWrapper<?> wrapper
     ) {
         // backwards compat
         byte[] data = wrapper.readByteArrayOfSize(arrayLength);
         NetStreamInput dataIn = new NetStreamInput(new ByteArrayInputStream(data));
-        return this.read(dimensionType, chunkMask, secondaryChunkMask, fullChunk,
-                hasBlockLight, hasSkyLight, chunkSize, data, dataIn);
+        return this.read(factory, dimensionType, chunkMask, secondaryChunkMask, fullChunk,
+                hasBlockLight, hasSkyLight, skipBlockLight, skipSkyLight, chunkSize, data, dataIn);
     }
 }

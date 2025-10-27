@@ -22,50 +22,44 @@
  * https://github.com/Steveice10/MCProtocolLib
  */
 
-package com.github.retrooper.packetevents.protocol.world.chunk.palette;
+package com.github.retrooper.packetevents.protocol.world.chunk.palette.reader;
 
 import com.github.retrooper.packetevents.protocol.stream.NetStreamInput;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.Palette;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
-import java.util.HashMap;
-
 /**
- * A palette backed by a map.
+ * A palette backed by a List.
  */
-public class MapPalette implements Palette {
+//TODO Equals & hashcode
+public class CustomPaletteReader implements Palette {
 
     private final int bits;
-    private final int[] idToState;
-    // TODO: Can we use fastutils here?
-    private final HashMap<Integer, Integer> stateToId = new HashMap<>();
-    private int nextId = 0;
+    protected final int[] data;
+    protected int nextId = 0;
 
-    public MapPalette(int bitsPerEntry) {
+    public CustomPaletteReader(int bitsPerEntry) {
         this.bits = bitsPerEntry;
-        this.idToState = new int[1 << bitsPerEntry];
+        this.data = new int[1 << bitsPerEntry];
     }
 
     @Deprecated
-    public MapPalette(int bitsPerEntry, NetStreamInput in) {
+    public CustomPaletteReader(int bitsPerEntry, NetStreamInput in) {
         this(bitsPerEntry);
 
-        int paletteLength = in.readVarInt();
+        int paletteLength = in.readVarInt2Bytes();
         for (int i = 0; i < paletteLength; i++) {
-            int state = in.readVarInt();
-            this.idToState[i] = state;
-            this.stateToId.putIfAbsent(state, i);
+            this.data[i] = in.readVarInt2Bytes();
         }
         this.nextId = paletteLength;
     }
 
-    public MapPalette(int bitsPerEntry, PacketWrapper<?> wrapper) {
+    public CustomPaletteReader(int bitsPerEntry, PacketWrapper<?> wrapper) {
         this(bitsPerEntry);
 
         int paletteLength = wrapper.readVarInt();
         for (int i = 0; i < paletteLength; i++) {
-            int state = wrapper.readVarInt();
-            this.idToState[i] = state;
-            this.stateToId.putIfAbsent(state, i);
+            this.data[i] = wrapper.readVarInt();
         }
         this.nextId = paletteLength;
     }
@@ -76,25 +70,9 @@ public class MapPalette implements Palette {
     }
 
     @Override
-    public int stateToId(int state) {
-        Integer id = this.stateToId.get(state);
-        if (id == null && this.size() < this.idToState.length) {
-            id = this.nextId++;
-            this.idToState[id] = state;
-            this.stateToId.put(state, id);
-        }
-
-        if (id != null) {
-            return id;
-        } else {
-            return -1;
-        }
-    }
-
-    @Override
     public int idToState(int id) {
-        if (id >= 0 && id < this.size()) {
-            return this.idToState[id];
+        if (id >= 0 && id < this.nextId) {
+            return this.data[id];
         } else {
             return 0;
         }

@@ -20,6 +20,10 @@ package com.github.retrooper.packetevents.protocol.world.chunk.palette;
 
 import com.github.retrooper.packetevents.protocol.stream.NetStreamInput;
 import com.github.retrooper.packetevents.protocol.stream.NetStreamOutput;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.generic.GlobalPalette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.generic.ListPalette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.generic.MapPalette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.generic.SingletonPalette;
 import com.github.retrooper.packetevents.protocol.world.chunk.storage.BaseStorage;
 import com.github.retrooper.packetevents.protocol.world.chunk.storage.BitStorage;
 import com.github.retrooper.packetevents.protocol.world.chunk.storage.LegacyFlexibleStorage;
@@ -62,34 +66,34 @@ public class DataPalette {
     }
 
     /**
-     * @deprecated use {@link PaletteType#read(PacketWrapper)} instead
+     * @deprecated use {@link PaletteType#read(PaletteFactory, PacketWrapper)} instead
      */
     @Deprecated
-    public static DataPalette read(NetStreamInput in, PaletteType paletteType) {
-        return read(in, paletteType, true);
+    public static DataPalette read(PaletteFactory factory, NetStreamInput in, PaletteType paletteType) {
+        return read(factory, in, paletteType, true);
     }
 
     /**
-     * @deprecated use {@link PaletteType#read(PacketWrapper)} instead
+     * @deprecated use {@link PaletteType#read(PaletteFactory, PacketWrapper)} instead
      */
     @Deprecated
-    public static DataPalette read(NetStreamInput in, PaletteType paletteType, boolean allowSingletonPalette) {
-        return read(in, paletteType, allowSingletonPalette, true);
+    public static DataPalette read(PaletteFactory factory, NetStreamInput in, PaletteType paletteType, boolean allowSingletonPalette) {
+        return read(factory, in, paletteType, allowSingletonPalette, true);
     }
 
     /**
-     * @deprecated use {@link PaletteType#read(PacketWrapper)} instead
+     * @deprecated use {@link PaletteType#read(PaletteFactory, PacketWrapper)} instead
      */
     @Deprecated
     public static DataPalette read(
-            NetStreamInput in, PaletteType paletteType,
+            PaletteFactory factory, NetStreamInput in, PaletteType paletteType,
             boolean allowSingletonPalette, boolean lengthPrefix
     ) {
         int bitsPerEntry = in.readByte();
-        Palette palette = readPalette(paletteType, bitsPerEntry, in, allowSingletonPalette);
+        Palette palette = readPalette(factory, paletteType, bitsPerEntry, in, allowSingletonPalette);
         BitStorage storage;
         if (!(palette instanceof SingletonPalette)) {
-            long[] data = lengthPrefix ? in.readLongs(in.readVarInt()) : null;
+            long[] data = lengthPrefix ? in.readLongs(in.readVarInt2Bytes()) : null;
             storage = new BitStorage(bitsPerEntry, paletteType.getStorageSize(), data);
             if (!lengthPrefix) {
                 // TODO what happens if "bitsPerEntry" != "palette.getBits()"?
@@ -97,7 +101,7 @@ public class DataPalette {
             }
         } else {
             if (lengthPrefix) {
-                in.readLongs(in.readVarInt());
+                in.readLongs(in.readVarInt2Bytes());
             }
             storage = null;
         }
@@ -145,13 +149,13 @@ public class DataPalette {
     }
 
     /**
-     * @deprecated use {@link PaletteType#read(PacketWrapper)} instead
+     * @deprecated use {@link PaletteType#read(PaletteFactory, PacketWrapper)} instead
      */
     @Deprecated
-    public static DataPalette readLegacy(NetStreamInput in) {
+    public static DataPalette readLegacy(PaletteFactory factory, NetStreamInput in) {
         int bitsPerEntry = Math.max(4, in.readByte() & 0xff);
-        Palette palette = readPalette(PaletteType.CHUNK, bitsPerEntry, in, false);
-        BaseStorage storage = new LegacyFlexibleStorage(bitsPerEntry, in.readLongs(in.readVarInt()));
+        Palette palette = readPalette(factory, PaletteType.CHUNK, bitsPerEntry, in, false);
+        BaseStorage storage = new LegacyFlexibleStorage(bitsPerEntry, in.readLongs(in.readVarInt2Bytes()));
         return new DataPalette(palette, storage, PaletteType.CHUNK);
     }
 
@@ -188,22 +192,13 @@ public class DataPalette {
 
     @Deprecated
     private static Palette readPalette(
+            PaletteFactory factory,
             PaletteType paletteType,
             int bitsPerEntry,
             NetStreamInput in,
             boolean allowSingletonPalette
     ) {
-        if (bitsPerEntry == 0 && allowSingletonPalette) {
-            return new SingletonPalette(in);
-        } else if (bitsPerEntry <= paletteType.getMaxBitsPerEntryForList()) {
-            // vanilla forces a blockstate-list-palette to always be the maximum size
-            int bits = paletteType.isForceMaxListPaletteSize() ? paletteType.getMaxBitsPerEntryForList() : bitsPerEntry;
-            return new ListPalette(bits, in);
-        } else if (bitsPerEntry <= paletteType.getMaxBitsPerEntryForMap()) {
-            return new MapPalette(bitsPerEntry, in);
-        } else {
-            return GlobalPalette.INSTANCE;
-        }
+        return factory.readPalette(paletteType, bitsPerEntry, in, allowSingletonPalette);
     }
 
     private void resizeOneUp() {

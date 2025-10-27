@@ -25,6 +25,7 @@ import com.github.retrooper.packetevents.protocol.stream.NetStreamOutput;
 import com.github.retrooper.packetevents.protocol.stream.NetStreamOutputWrapper;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.palette.DataPalette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteType;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 
@@ -47,28 +48,28 @@ public class Chunk_v1_18 implements BaseChunk {
         this.biomeData = biomeData;
     }
 
-    public static Chunk_v1_18 read(PacketWrapper<?> wrapper) {
+    public static Chunk_v1_18 read(PaletteFactory factory, PacketWrapper<?> wrapper) {
         boolean paletteLengthPrefix = wrapper.getServerVersion().isOlderThan(ServerVersion.V_1_21_5);
-        return read(new NetStreamInputWrapper(wrapper), paletteLengthPrefix);
+        return read(factory, new NetStreamInputWrapper(wrapper), paletteLengthPrefix);
     }
 
     /**
-     * @deprecated use {@link #read(PacketWrapper)} instead
+     * @deprecated use {@link #read(PaletteFactory, PacketWrapper)} instead
      */
     @Deprecated
-    public static Chunk_v1_18 read(NetStreamInput in) {
-        return read(in, true);
+    public static Chunk_v1_18 read(PaletteFactory factory, NetStreamInput in) {
+        return read(factory, in, true);
     }
 
     /**
-     * @deprecated use {@link #read(PacketWrapper)} instead
+     * @deprecated use {@link #read(PaletteFactory, PacketWrapper)} instead
      */
     @Deprecated
-    public static Chunk_v1_18 read(NetStreamInput in, boolean paletteLengthPrefix) {
+    public static Chunk_v1_18 read(PaletteFactory factory, NetStreamInput in, boolean paletteLengthPrefix) {
         int blockCount = in.readShort();
-        DataPalette chunkPalette = DataPalette.read(in, PaletteType.CHUNK,
+        DataPalette chunkPalette = DataPalette.read(factory, in, PaletteType.CHUNK,
                 true, paletteLengthPrefix);
-        DataPalette biomePalette = DataPalette.read(in, PaletteType.BIOME,
+        DataPalette biomePalette = DataPalette.read(factory, in, PaletteType.BIOME,
                 true, paletteLengthPrefix);
         return new Chunk_v1_18(blockCount, chunkPalette, biomePalette);
     }

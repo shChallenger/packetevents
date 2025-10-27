@@ -93,7 +93,7 @@ public class NetStreamInput extends FilterInputStream {
     }
 
 
-    public int readVarInt() {
+    /*public int readVarInt() {
         int value = 0;
         int size = 0;
         int b;
@@ -105,8 +105,21 @@ public class NetStreamInput extends FilterInputStream {
         }
 
         return value | ((b & 0x7F) << (size * 7));
-    }
+    }*/
 
+    public int readVarInt2Bytes() {
+        int b1 = this.readByte() & 0xFF;
+        if ((b1 & 0x80) == 0) {
+            return b1;
+        }
+
+        int b2 = this.readByte() & 0xFF;
+        if ((b2 & 0x80) != 0) {
+            throw new IllegalStateException("VarInt too long (max 2 bytes)");
+        }
+
+        return (b1 & 0x7F) | ((b2 & 0x7F) << 7);
+    }
 
     public long readLong() {
         byte[] read = this.readBytes(8);
@@ -163,6 +176,15 @@ public class NetStreamInput extends FilterInputStream {
         return b;
     }
 
+    @Override
+    public long skip(long n) {
+        try {
+            return super.skip(n);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
 
     public int readBytes(byte[] b) {
         try {
@@ -287,7 +309,7 @@ public class NetStreamInput extends FilterInputStream {
 
 
     public String readString() {
-        int length = this.readVarInt();
+        int length = this.readVarInt2Bytes();
         byte[] bytes = this.readBytes(length);
         return new String(bytes, StandardCharsets.UTF_8);
     }

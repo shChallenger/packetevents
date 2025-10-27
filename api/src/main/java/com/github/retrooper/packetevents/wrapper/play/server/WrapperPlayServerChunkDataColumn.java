@@ -21,6 +21,8 @@ package com.github.retrooper.packetevents.wrapper.play.server;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.world.chunk.*;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.Palette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 
 public class WrapperPlayServerChunkDataColumn extends WrapperPlayServerChunkDataAbstract<WrapperPlayServerChunkDataColumn> {
 
@@ -29,13 +31,18 @@ public class WrapperPlayServerChunkDataColumn extends WrapperPlayServerChunkData
     }
 
     @Override
-    protected boolean doReadBlockLight() {
-        return false;
+    protected PaletteFactory getPaletteFactory() {
+        return Palette.READER_FACTORY;
     }
 
     @Override
-    protected boolean doReadSkyLight() {
-        return false;
+    protected boolean skipBlockLight() {
+        return true;
+    }
+
+    @Override
+    protected boolean skipSkyLight() {
+        return true;
     }
 
     @Override

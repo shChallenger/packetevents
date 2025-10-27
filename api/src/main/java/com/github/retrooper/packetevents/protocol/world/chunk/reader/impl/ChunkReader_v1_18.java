@@ -22,6 +22,7 @@ import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.netty.buffer.ByteBufHelper;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v_1_18.Chunk_v1_18;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.ChunkReader;
 import com.github.retrooper.packetevents.protocol.world.chunk.storage.BaseStorage;
 import com.github.retrooper.packetevents.protocol.world.dimension.DimensionType;
@@ -48,13 +49,14 @@ public class ChunkReader_v1_18 implements ChunkReader {
 
     @Override
     public BaseChunk[] read(
-            DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
-            boolean hasBlockLight, boolean hasSkyLight, int chunkSize, int arrayLength, PacketWrapper<?> wrapper
+            PaletteFactory factory, DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask,
+            boolean fullChunk, boolean hasBlockLight, boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight,
+            int chunkSize, int arrayLength, PacketWrapper<?> wrapper
     ) {
         int ri = ByteBufHelper.readerIndex(wrapper.buffer);
         BaseChunk[] chunks = new BaseChunk[chunkSize];
         for (int i = 0; i < chunkSize; ++i) {
-            chunks[i] = Chunk_v1_18.read(wrapper);
+            chunks[i] = Chunk_v1_18.read(factory, wrapper);
         }
         if (wrapper.getServerVersion().isOlderThan(ServerVersion.V_1_21_6)
                 && wrapper.getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_21_5)

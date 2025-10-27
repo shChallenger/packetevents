@@ -32,6 +32,8 @@ import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_16.Chunk_v
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_7.Chunk_v1_7;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_8.Chunk_v1_8;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v_1_18.Chunk_v1_18;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.Palette;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_18;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_7;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.impl.ChunkReader_v1_8;
@@ -63,13 +65,18 @@ public class WrapperPlayServerChunkData extends WrapperPlayServerChunkDataAbstra
     }
 
     @Override
-    protected boolean doReadBlockLight() {
-        return true;
+    protected PaletteFactory getPaletteFactory() {
+        return Palette.GENERIC_FACTORY;
     }
 
     @Override
-    protected boolean doReadSkyLight() {
-        return true;
+    protected boolean skipBlockLight() {
+        return false;
+    }
+
+    @Override
+    protected boolean skipSkyLight() {
+        return false;
     }
 
     @Override

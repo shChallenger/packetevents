@@ -24,6 +24,7 @@ import com.github.retrooper.packetevents.protocol.world.chunk.ByteArray3d;
 import com.github.retrooper.packetevents.protocol.world.chunk.NetworkChunkData;
 import com.github.retrooper.packetevents.protocol.world.chunk.NibbleArray3d;
 import com.github.retrooper.packetevents.protocol.world.chunk.impl.v1_7.Chunk_v1_7;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.PaletteFactory;
 import com.github.retrooper.packetevents.protocol.world.chunk.reader.ChunkReader;
 import com.github.retrooper.packetevents.protocol.world.dimension.DimensionType;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
@@ -34,8 +35,8 @@ public class ChunkReader_v1_7 implements ChunkReader {
 
     @Override
     public BaseChunk[] read(
-            DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
-            boolean hasBlockLight, boolean hasSkyLight, int chunkSize, int arrayLength, PacketWrapper<?> wrapper
+            PaletteFactory factory, DimensionType dimensionType, BitSet chunkMask, BitSet secondaryChunkMask, boolean fullChunk,
+            boolean hasBlockLight, boolean hasSkyLight, boolean skipBlockLight, boolean skipSkyLight, int chunkSize, int arrayLength, PacketWrapper<?> wrapper
     ) {
         byte[] data = wrapper.readByteArrayOfSize(arrayLength);
 
@@ -81,13 +82,13 @@ public class ChunkReader_v1_7 implements ChunkReader {
 
                     if (pass == 3) {
                         NibbleArray3d blocklight = chunks[ind].getBlockLight();
-                        System.arraycopy(data, pos, blocklight.getData(), 0, blocklight.getData().length);
+                        if (!skipBlockLight) System.arraycopy(data, pos, blocklight.getData(), 0, blocklight.getData().length);
                         pos += blocklight.getData().length;
                     }
 
                     if (pass == 4 && sky) {
                         NibbleArray3d skylight = chunks[ind].getSkyLight();
-                        System.arraycopy(data, pos, skylight.getData(), 0, skylight.getData().length);
+                        if (!skipSkyLight) System.arraycopy(data, pos, skylight.getData(), 0, skylight.getData().length);
                         pos += skylight.getData().length;
                     }
                 }

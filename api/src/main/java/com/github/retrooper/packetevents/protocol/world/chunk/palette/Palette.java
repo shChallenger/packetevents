@@ -1,33 +1,15 @@
-/*
- * This file is part of packetevents - https://github.com/retrooper/packetevents
- * Copyright (C) 2022 retrooper and contributors
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/*
- * This class was taken from MCProtocolLib.
- *
- * https://github.com/Steveice10/MCProtocolLib
- */
-
 package com.github.retrooper.packetevents.protocol.world.chunk.palette;
 
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.generic.PaletteGenericFactory;
+import com.github.retrooper.packetevents.protocol.world.chunk.palette.reader.PaletteReaderFactory;
+
 /**
- * A palette for mapping block states to storage IDs.
+ * A palette reader for mapping block states to storage IDs.
  */
 public interface Palette {
+
+    PaletteGenericFactory GENERIC_FACTORY = new PaletteGenericFactory();
+    PaletteReaderFactory READER_FACTORY = new PaletteReaderFactory();
 
     /**
      * Gets the number of block states known by this palette.
@@ -43,7 +25,9 @@ public interface Palette {
      * @param state Block state to convert.
      * @return The resulting storage ID.
      */
-    int stateToId(int state);
+    default int stateToId(int state) {
+        throw new IllegalStateException("PaletteReader does not support state writing");
+    }
 
     /**
      * Converts a storage ID to a block state. If the storage ID has no mapping,
@@ -55,4 +39,5 @@ public interface Palette {
     int idToState(int id);
 
     int getBits();
+
 }
