@@ -108,12 +108,12 @@ public class NetStreamInput extends FilterInputStream {
     }*/
 
     public int readVarInt2Bytes() {
-        int b1 = this.readByte() & 0xFF;
+        int b1 = this.readUnsignedByte();
         if ((b1 & 0x80) == 0) {
             return b1;
         }
 
-        int b2 = this.readByte() & 0xFF;
+        int b2 = this.readUnsignedByte();
         if ((b2 & 0x80) != 0) {
             throw new IllegalStateException("VarInt too long (max 2 bytes)");
         }
