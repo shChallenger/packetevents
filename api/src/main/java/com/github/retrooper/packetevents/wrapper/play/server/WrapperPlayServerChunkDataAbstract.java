@@ -126,12 +126,13 @@ public abstract class WrapperPlayServerChunkDataAbstract<T extends WrapperPlaySe
             }
         }
 
-        boolean hasBlockLight = (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16) || serverVersion.isOlderThan(ServerVersion.V_1_14))
+        boolean hasBlockLight = this.doReadBlockLight()
+                && (serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16) || serverVersion.isOlderThan(ServerVersion.V_1_14))
                 && !serverVersion.isOlderThanOrEquals(ServerVersion.V_1_8_8);
-        boolean hasSkyLight = this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16)
+        boolean hasSkyLight = this.doReadSkyLight() && (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_16)
                 || this.serverVersion.isOlderThanOrEquals(ServerVersion.V_1_8_8)
                 || this.user != null && this.user.getDimensionType().hasSkyLight()
-                && this.serverVersion.isOlderThan(ServerVersion.V_1_14);
+                && this.serverVersion.isOlderThan(ServerVersion.V_1_14));
 
         Object originalBuffer = this.buffer;
         if (this.serverVersion.isOlderThanOrEquals(ServerVersion.V_1_7_10)) {
@@ -197,6 +198,10 @@ public abstract class WrapperPlayServerChunkDataAbstract<T extends WrapperPlaySe
             }
         }
     }
+
+    protected abstract boolean doReadBlockLight();
+
+    protected abstract boolean doReadSkyLight();
 
     protected abstract void readBiomeData(int expectedReaderIndex, BiomeDataInfo biomeDataInfo);
 

@@ -37,7 +37,7 @@ public class MapPalette implements Palette {
     private final int bits;
     private final int[] idToState;
     // TODO: Can we use fastutils here?
-    private final HashMap<Object, Integer> stateToId = new HashMap<>();
+    private final HashMap<Integer, Integer> stateToId = new HashMap<>();
     private int nextId = 0;
 
     public MapPalette(int bitsPerEntry) {

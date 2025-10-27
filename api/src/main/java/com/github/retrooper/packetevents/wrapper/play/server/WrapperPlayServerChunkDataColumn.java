@@ -29,6 +29,16 @@ public class WrapperPlayServerChunkDataColumn extends WrapperPlayServerChunkData
     }
 
     @Override
+    protected boolean doReadBlockLight() {
+        return false;
+    }
+
+    @Override
+    protected boolean doReadSkyLight() {
+        return false;
+    }
+
+    @Override
     protected void readBiomeData(int expectedReaderIndex, BiomeDataInfo biomeDataInfo) {
         if (biomeDataInfo.hasBiomeData && this.serverVersion.isOlderThan(ServerVersion.V_1_15)) {
             if (this.serverVersion.isNewerThanOrEquals(ServerVersion.V_1_13)) {
