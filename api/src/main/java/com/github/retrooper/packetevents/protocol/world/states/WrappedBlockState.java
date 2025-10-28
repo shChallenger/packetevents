@@ -126,7 +126,7 @@ public class WrappedBlockState {
 
     int globalID;
     StateType type;
-    Map<StateValue, Object> data = new HashMap<>(0);
+    Map<StateValue, Object> data = Collections.EMPTY_MAP;
     boolean hasClonedData = false;
     byte mappingsIndex;
 
@@ -136,6 +136,8 @@ public class WrappedBlockState {
         this.globalID = globalID;
 
         if (data != null) {
+            this.data = new EnumMap<>(StateType.class);
+
             for (String s : data) {
                 try {
                     String[] split = s.split("=");
@@ -441,7 +443,7 @@ public class WrappedBlockState {
             byte mappingIndex = getMappingsIndex(version);
             SequentialNBTReader.List list = (SequentialNBTReader.List) compound.next().getValue();
 
-            Map<Integer, WrappedBlockState> stateByIdMap = new HashMap<>();
+            List<WrappedBlockState> orderedStateList = new ArrayList<>();
             Map<WrappedBlockState, Integer> stateToIdMap = new HashMap<>();
             Map<String, WrappedBlockState> stateByStringMap = new HashMap<>();
             Map<WrappedBlockState, String> stateToStringMap = new HashMap<>();
@@ -517,7 +519,7 @@ public class WrappedBlockState {
                     }
 
                     stateByStringMap.put(fullString, state);
-                    stateByIdMap.put(id, state);
+                    orderedStateList.add(state);
                     stateToStringMap.put(state, fullString);
                     stateToIdMap.put(state, id);
 
@@ -527,9 +529,8 @@ public class WrappedBlockState {
             }
 
             BY_ID[mappingIndex] = new WrappedBlockState[id];
-            for (Map.Entry<Integer, WrappedBlockState> entry : stateByIdMap.entrySet()) {
-                BY_ID[mappingIndex][entry.getKey()] = entry.getValue();
-            }
+            orderedStateList.toArray(BY_ID[mappingIndex]);
+
             INTO_ID[mappingIndex] = stateToIdMap;
             BY_STRING[mappingIndex] = stateByStringMap;
             INTO_STRING[mappingIndex] = stateToStringMap;
