@@ -136,7 +136,7 @@ public class WrappedBlockState {
         this.globalID = globalID;
 
         if (data != null) {
-            this.data = new EnumMap<>(StateType.class);
+            this.data = new EnumMap<>(StateValue.class);
 
             for (String s : data) {
                 try {
