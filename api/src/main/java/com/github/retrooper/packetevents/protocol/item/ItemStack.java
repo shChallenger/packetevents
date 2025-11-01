@@ -618,9 +618,9 @@ public class ItemStack {
 
     public boolean compare(ItemStack itemStack) {
         return this.type.equals(itemStack.type)
+                && this.legacyData == itemStack.legacyData
                 && Objects.equals(this.nbt, itemStack.nbt)
-                && Objects.equals(this.components, itemStack.components)
-                && this.legacyData == itemStack.legacyData;
+                && Objects.equals(this.components, itemStack.components);
     }
 
     @Override
