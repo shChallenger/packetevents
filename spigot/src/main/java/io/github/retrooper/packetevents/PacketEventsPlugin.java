@@ -18,22 +18,11 @@
 
 package io.github.retrooper.packetevents;
 
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.event.*;
-import com.github.retrooper.packetevents.event.simple.*;
-import com.github.retrooper.packetevents.protocol.packettype.PacketType;
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
-import com.github.retrooper.packetevents.util.TimeStampMode;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSystemChatMessage;
-import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PacketEventsPlugin extends JavaPlugin {
-    @Override
+
+    /*@Override
     public void onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
         PacketEvents.getAPI().load();
@@ -104,5 +93,5 @@ public class PacketEventsPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         PacketEvents.getAPI().terminate();
-    }
+    }*/
 }
