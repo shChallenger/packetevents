@@ -130,7 +130,8 @@ public class PacketEventsEncoder extends ChannelOutboundHandlerAdapter {
         promise.addListener(p -> this.promise = oldPromise);
         this.promise = promise;
 
-        PacketWrapper<?> beforePacket = null, afterPacket = null;
+        PacketWrapper<?> beforePacket = null;
+        PacketWrapper<?>[] afterPackets = null;
 
         if (msg instanceof ByteBuf) {
             boolean needsRecompression = !this.handledCompression && this.handleCompression(ctx, (ByteBuf) msg);
@@ -149,13 +150,21 @@ public class PacketEventsEncoder extends ChannelOutboundHandlerAdapter {
 
             if (sendEvent != null) {
                 beforePacket = sendEvent.getBeforePacket();
-                afterPacket = sendEvent.getAfterPacket();
+                afterPackets = sendEvent.getAfterPackets();
             }
         }
 
-        if (beforePacket != null) user.writePacketSilently(beforePacket);
+        if (beforePacket != null) {
+            user.writePacketSilently(beforePacket);
+        }
+
         ctx.write(msg, promise);
-        if (afterPacket != null) user.writePacketSilently(afterPacket);
+
+        if (afterPackets != null) {
+            for (PacketWrapper<?> afterPacket : afterPackets) {
+                user.writePacketSilently(afterPacket);
+            }
+        }
     }
 
     @Override

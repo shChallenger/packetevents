@@ -32,7 +32,7 @@ import java.util.List;
 public class PacketSendEvent extends ProtocolPacketEvent {
     private List<Runnable> tasksAfterSend = null;
     private PacketWrapper<?> beforePacket = null;
-    private PacketWrapper<?> afterPacket = null;
+    private PacketWrapper<?>[] afterPackets = null;
 
     protected PacketSendEvent(Object channel, User user, Object player, Object rawByteBuf,
                               boolean autoProtocolTranslation) throws PacketProcessException {
@@ -72,12 +72,12 @@ public class PacketSendEvent extends ProtocolPacketEvent {
         return beforePacket;
     }
 
-    public void setAfterPacket(PacketWrapper<?> afterPacket) {
-        this.afterPacket = afterPacket;
+    public void setAfterPackets(PacketWrapper<?>[] afterPackets) {
+        this.afterPackets = afterPackets;
     }
 
-    public PacketWrapper<?> getAfterPacket() {
-        return afterPacket;
+    public PacketWrapper<?>[] getAfterPackets() {
+        return afterPackets;
     }
 
     @Override
